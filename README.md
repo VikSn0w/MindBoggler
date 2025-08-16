@@ -1,3 +1,5 @@
+<a href="url"><img src="https://raw.githubusercontent.com/VikSn0w/MindBoggler/refs/heads/main/gitimg/cover.png" align="center" height="auto" width="100%" ></a>
+---
 # Mind Boggler - Brainfuck PyIDE
 
 A comprehensive Integrated Development Environment (IDE) for the Brainfuck esoteric programming language, built with Python and PySide6. This IDE provides debugging capabilities, memory visualization, compilation analysis, and configurable interpreter behavior.
@@ -16,6 +18,8 @@ A comprehensive Integrated Development Environment (IDE) for the Brainfuck esote
 - [Contributing](#contributing)
 - [License](#license)
 
+---
+
 ## About Brainfuck
 
 Brainfuck is an esoteric programming language created by Urban Müller in 1993. It is famous for its minimalism and extreme difficulty to use. The language consists of only eight simple commands, a data pointer, and an instruction pointer. Despite its simplicity, Brainfuck is Turing-complete and can theoretically solve any computational problem.
@@ -23,6 +27,8 @@ Brainfuck is an esoteric programming language created by Urban Müller in 1993. 
 The language operates on an array of memory cells (traditionally 30,000 cells), each initially set to zero. A data pointer begins at the leftmost cell, and commands manipulate the pointer and the data it points to.
 
 More information can be found on the [Brainfuck Wikipedia page](https://en.wikipedia.org/wiki/Brainfuck) and on the Daniel B. Cristofani's [Brainfuck Wiki](https://brainfuck.org).
+
+---
 
 ## Features
 
@@ -43,6 +49,8 @@ More information can be found on the [Brainfuck Wikipedia page](https://en.wikip
 - **Comprehensive error handling** and reporting
 - **Program syntax validation**
 
+---
+
 ## Installation
 #### Binary Releases
 Pre-built binaries are available for Windows built with auto-py-to-exe.
@@ -61,6 +69,7 @@ pip install PySide6
 python main.py
 ```
 
+---
 
 ## Usage
 
@@ -73,6 +82,8 @@ python main.py
 4. **Run the program** using the control buttons
 5. **Monitor execution** through memory grid and status bar
 6. **Debug with breakpoints** by pressing F9 or using the toolbar
+
+---
 
 ## Brainfuck Instructions
 
@@ -90,6 +101,8 @@ Brainfuck uses eight single-character instructions:
 | `]` | Jump backward to matching `[` if value at pointer is non-zero | `end while`                      |
 
 All other characters are treated as comments and ignored.
+
+---
 
 ### Instruction Interpretation
 
@@ -148,6 +161,7 @@ Cell value 0: - command → value becomes 255
 Cell values can exceed 0-255 range
 Useful for mathematical operations requiring larger numbers
 ```
+---
 
 ## IDE Components
 
@@ -186,6 +200,8 @@ Real-time display of:
 - Breakpoint toggle
 - Settings configuration
 
+---
+
 ## Settings
 
 Access via **Settings** button in toolbar:
@@ -200,6 +216,8 @@ Access via **Settings** button in toolbar:
 - **No Wrap**: Allow values beyond 8-bit range
 
 Settings are applied immediately and persist for the session.
+
+---
 
 ## Examples
 
@@ -242,6 +260,8 @@ Tests pointer behavior:
 - Wrap: pointer moves to end of memory  
 - Error: throws exception
 
+---
+
 ## Compilation and Optimization
 
 The IDE includes a compilation system that:
@@ -259,6 +279,8 @@ View detailed compilation results including:
 - Optimization efficiency percentage
 - Instruction-by-instruction breakdown
 - Jump table mapping
+
+---
 
 ## Pseudocode Generation
 
@@ -279,6 +301,8 @@ pointer-- (0)
 print(char(memory[pointer]))
 ```
 
+---
+
 ## Development
 
 ### File Structure
@@ -295,6 +319,8 @@ brainfuck-ide/
 - `Interpreter`: Core Brainfuck execution engine
 - `MainWindow`: Primary GUI application
 
+---
+
 ## Error Handling
 
 The IDE provides comprehensive error handling:
@@ -303,6 +329,8 @@ The IDE provides comprehensive error handling:
 - **Runtime Errors**: Division by zero, infinite loops (with step limits)
 - **Pointer Errors**: Boundary violations (in Error mode)
 - **Input Errors**: Invalid input handling
+
+---
 
 ## Performance
 
@@ -315,6 +343,8 @@ The IDE provides comprehensive error handling:
 - Default: 30,000 memory cells
 - Memory visualization: Shows 512 cells simultaneously
 - Efficient memory allocation and access patterns
+
+---
 
 ## Contributing
 
@@ -331,10 +361,13 @@ Contributions are welcome! Areas for improvement:
 3. Make changes with appropriate tests
 4. Submit a pull request
 
+---
+
 ## Acknowledgments
 
 - **Urban Müller**: Creator of the Brainfuck programming language
 - **[Daniel B. Cristofani](https://gist.github.com/danielcristofani)**: For providing extensive Brainfuck resources and documentation
 ## License
 
+---
 This project is released under the GNU GENERAL PUBLIC LICENSE Version 3. See LICENSE file for details.
