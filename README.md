@@ -161,6 +161,13 @@ Cell value 0: - command → value becomes 255
 Cell values can exceed 0-255 range
 Useful for mathematical operations requiring larger numbers
 ```
+
+#### Error on underflow/overflow
+```
+Cell values can't exceed 0-255 range, 
+An exception is thrown when cell goes below 0 or above 255
+Optimal for strict Brainfuck behavior (in conjuction with Error pointer behavior)
+```
 ---
 
 ## IDE Components
@@ -212,8 +219,9 @@ Access via **Settings** button in toolbar:
 - **Error**: Exception on boundary violation
 
 ### Cell Value Behavior
-- **Wrap (0-255)**: Standard Brainfuck behavior
+- **Wrap (0-255)**: Standard Brainfuck behavior (usigned 8 bit range)
 - **No Wrap**: Allow values beyond 8-bit range
+- **Error on Underflow/Overflow**: Exception on values exceeding unsigned 8-bit range
 
 Settings are applied immediately and persist for the session.
 
