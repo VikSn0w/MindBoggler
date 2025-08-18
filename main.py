@@ -2,14 +2,200 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Set
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QAction, QKeySequence, QTextCharFormat, QColor, QTextOption, QTextCursor, QIcon
+from PySide6.QtGui import QAction, QKeySequence, QTextCharFormat, QColor, QTextOption, QTextCursor, QIcon, QPixmap, \
+    QDesktopServices
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QSplitter, QVBoxLayout, QHBoxLayout,
     QPlainTextEdit, QPushButton, QLabel, QTableWidget, QTableWidgetItem,
     QFileDialog, QMessageBox, QToolBar, QStatusBar, QAbstractItemView, QTextEdit,
     QInputDialog, QDialog, QButtonGroup, QRadioButton, QGroupBox, QCheckBox
 )
-from interpreter import Interpreter, PointerBehavior, PointerOverflowError
+from PySide6.QtCore import QUrl
+from interpreter import Interpreter, PointerBehavior, CellBehavior, PointerOverflowError, CellOverflowError
+
+
+class AboutDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("About Mind Boggler")
+        self.setModal(True)
+        self.setFixedSize(500, 400)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+
+        layout = QVBoxLayout(self)
+        layout.setSpacing(15)
+        layout.setContentsMargins(30, 30, 30, 30)
+
+        # Icon and title section
+        header_layout = QHBoxLayout()
+
+        # Try to load the icon, fallback to a default if not found
+        icon_label = QLabel()
+        icon_label.setFixedSize(64, 64)
+        icon_label.setScaledContents(True)
+
+        try:
+            pixmap = QPixmap("icon.png")
+            if not pixmap.isNull():
+                icon_label.setPixmap(pixmap)
+            else:
+                # Create a simple colored square as fallback
+                fallback_pixmap = QPixmap(64, 64)
+                fallback_pixmap.fill(QColor(100, 149, 237))  # CornflowerBlue
+                icon_label.setPixmap(fallback_pixmap)
+        except:
+            # Create a simple colored square as fallback
+            fallback_pixmap = QPixmap(64, 64)
+            fallback_pixmap.fill(QColor(100, 149, 237))  # CornflowerBlue
+            icon_label.setPixmap(fallback_pixmap)
+
+        title_layout = QVBoxLayout()
+        title_layout.setSpacing(5)
+
+        program_name = QLabel("Mind Boggler")
+        program_name.setStyleSheet("font-size: 24px; font-weight: bold; color: #2c3e50;")
+
+        subtitle = QLabel("Brainfuck PyIDE")
+        subtitle.setStyleSheet("font-size: 14px; color: #7f8c8d; font-style: italic;")
+
+        version_label = QLabel("Version 1.1.0")
+        version_label.setStyleSheet("font-size: 12px; color: #95a5a6;")
+
+        title_layout.addWidget(program_name)
+        title_layout.addWidget(subtitle)
+        title_layout.addWidget(version_label)
+        title_layout.addStretch()
+
+        header_layout.addWidget(icon_label)
+        header_layout.addLayout(title_layout)
+        header_layout.addStretch()
+
+        layout.addLayout(header_layout)
+
+        # Description
+        description = QLabel(
+            "A comprehensive Integrated Development Environment for the Brainfuck programming language. "
+            "Features include syntax highlighting, debugging capabilities, memory visualization, "
+            "configurable interpreter behaviors, and code analysis tools."
+        )
+        description.setWordWrap(True)
+        description.setStyleSheet("font-size: 12px; color: #34495e; line-height: 1.4;")
+        description.setAlignment(Qt.AlignJustify)
+
+        layout.addWidget(description)
+
+        # Separator line
+        separator = QLabel()
+        separator.setFixedHeight(1)
+        separator.setStyleSheet("background-color: #bdc3c7; margin: 10px 0;")
+        layout.addWidget(separator)
+
+        # Links section
+        links_layout = QVBoxLayout()
+        links_layout.setSpacing(10)
+
+        links_title = QLabel("Links")
+        links_title.setStyleSheet("font-size: 14px; font-weight: bold; color: #2c3e50;")
+        links_layout.addWidget(links_title)
+
+        # GitHub link
+        github_layout = QHBoxLayout()
+        github_icon = QLabel("🐙")  # GitHub emoji as icon
+        github_icon.setStyleSheet("font-size: 16px;")
+        github_link = QPushButton("View on GitHub")
+        github_link.setStyleSheet("""
+            QPushButton {
+                background: none;
+                border: none;
+                color: #3498db;
+                text-decoration: underline;
+                font-size: 12px;
+                text-align: left;
+                padding: 2px;
+            }
+            QPushButton:hover {
+                color: #2980b9;
+            }
+        """)
+        github_link.setCursor(Qt.PointingHandCursor)
+        github_link.clicked.connect(
+            lambda: QDesktopServices.openUrl(QUrl("https://github.com/VikSn0w/MindBoggler")))
+
+        github_layout.addWidget(github_icon)
+        github_layout.addWidget(github_link)
+        github_layout.addStretch()
+
+        # LinkedIn link
+        linkedin_layout = QHBoxLayout()
+        linkedin_icon = QLabel("💼")  # Professional emoji as icon
+        linkedin_icon.setStyleSheet("font-size: 16px;")
+        linkedin_link = QPushButton("Connect on LinkedIn")
+        linkedin_link.setStyleSheet("""
+            QPushButton {
+                background: none;
+                border: none;
+                color: #3498db;
+                text-decoration: underline;
+                font-size: 12px;
+                text-align: left;
+                padding: 2px;
+            }
+            QPushButton:hover {
+                color: #2980b9;
+            }
+        """)
+        linkedin_link.setCursor(Qt.PointingHandCursor)
+        linkedin_link.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://www.linkedin.com/in/vittorio-picone-916319168")))
+
+        linkedin_layout.addWidget(linkedin_icon)
+        linkedin_layout.addWidget(linkedin_link)
+        linkedin_layout.addStretch()
+
+        links_layout.addLayout(github_layout)
+        links_layout.addLayout(linkedin_layout)
+
+        layout.addLayout(links_layout)
+
+        # Copyright and credits
+        layout.addStretch()
+
+        copyright_label = QLabel("2025 Vittorio Picone - Under GPL-3.0 license")
+        copyright_label.setStyleSheet("font-size: 10px; color: #95a5a6;")
+        copyright_label.setAlignment(Qt.AlignCenter)
+
+        credits_label = QLabel("Built with Python and PySide6")
+        credits_label.setStyleSheet("font-size: 10px; color: #95a5a6;")
+        credits_label.setAlignment(Qt.AlignCenter)
+
+        layout.addWidget(copyright_label)
+        layout.addWidget(credits_label)
+
+        # Close button
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+
+        close_button = QPushButton("Close")
+        close_button.setStyleSheet("""
+            QPushButton {
+                background-color: #3498db;
+                color: white;
+                border: none;
+                padding: 8px 20px;
+                border-radius: 4px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #2980b9;
+            }
+            QPushButton:pressed {
+                background-color: #21618c;
+            }
+        """)
+        close_button.clicked.connect(self.accept)
+        close_button.setDefault(True)
+
+        button_layout.addWidget(close_button)
+        layout.addLayout(button_layout)
 
 
 class SettingsDialog(QDialog):
@@ -17,10 +203,9 @@ class SettingsDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Settings")
         self.setModal(True)
-        self.resize(400, 300)
+        self.resize(450, 400)
         layout = QVBoxLayout(self)
 
-        # Pointer behavior group
         pointer_group = QGroupBox("Pointer Behavior")
         pointer_layout = QVBoxLayout(pointer_group)
 
@@ -34,14 +219,12 @@ class SettingsDialog(QDialog):
         self.pointer_behavior_group.addButton(self.wrap_radio, PointerBehavior.WRAP.value)
         self.pointer_behavior_group.addButton(self.error_radio, PointerBehavior.ERROR.value)
 
-        # Set default
         self.clamp_radio.setChecked(True)
 
         pointer_layout.addWidget(self.clamp_radio)
         pointer_layout.addWidget(self.wrap_radio)
         pointer_layout.addWidget(self.error_radio)
 
-        # Add descriptions
         desc_label = QLabel(
             "• Clamp: Pointer stops at memory boundaries (0 and memory_size-1)\n"
             "• Wrap-around: Pointer wraps to opposite end when crossing boundaries\n"
@@ -52,21 +235,34 @@ class SettingsDialog(QDialog):
 
         layout.addWidget(pointer_group)
 
-        # Cell overflow behavior group
         cell_group = QGroupBox("Cell Value Behavior")
         cell_layout = QVBoxLayout(cell_group)
 
-        self.cell_wrap_checkbox = QCheckBox("Wrap cell values (0-255, standard Brainfuck)")
-        self.cell_wrap_checkbox.setChecked(True)
-        cell_layout.addWidget(self.cell_wrap_checkbox)
+        self.cell_behavior_group = QButtonGroup(self)
+        self.cell_wrap_radio = QRadioButton("Wrap (0-255, standard Brainfuck)")
+        self.cell_unlimited_radio = QRadioButton("Unlimited (allow values beyond 0-255)")
+        self.cell_error_radio = QRadioButton("Error on underflow/overflow")
 
-        cell_desc = QLabel("When unchecked, cell values can exceed 0-255 range")
+        self.cell_behavior_group.addButton(self.cell_wrap_radio, CellBehavior.WRAP.value)
+        self.cell_behavior_group.addButton(self.cell_unlimited_radio, CellBehavior.UNLIMITED.value)
+        self.cell_behavior_group.addButton(self.cell_error_radio, CellBehavior.ERROR.value)
+
+        self.cell_wrap_radio.setChecked(True)
+
+        cell_layout.addWidget(self.cell_wrap_radio)
+        cell_layout.addWidget(self.cell_unlimited_radio)
+        cell_layout.addWidget(self.cell_error_radio)
+
+        cell_desc = QLabel(
+            "• Wrap: Cell values wrap around 0-255 (255+1=0, 0-1=255)\n"
+            "• Unlimited: Cell values can exceed 0-255 range (useful for calculations)\n"
+            "• Error: Throw exception when cell goes below 0 or above 255"
+        )
         cell_desc.setStyleSheet("color: gray; font-size: 9pt;")
         cell_layout.addWidget(cell_desc)
 
         layout.addWidget(cell_group)
 
-        # Buttons
         button_layout = QHBoxLayout()
         self.ok_button = QPushButton("OK")
         self.cancel_button = QPushButton("Cancel")
@@ -77,7 +273,6 @@ class SettingsDialog(QDialog):
 
         layout.addLayout(button_layout)
 
-        # Connect buttons
         self.ok_button.clicked.connect(self.accept)
         self.cancel_button.clicked.connect(self.reject)
 
@@ -92,11 +287,16 @@ class SettingsDialog(QDialog):
         elif behavior == PointerBehavior.ERROR:
             self.error_radio.setChecked(True)
 
-    def get_cell_wrap(self):
-        return self.cell_wrap_checkbox.isChecked()
+    def get_cell_behavior(self):
+        return CellBehavior(self.cell_behavior_group.checkedId())
 
-    def set_cell_wrap(self, wrap: bool):
-        self.cell_wrap_checkbox.setChecked(wrap)
+    def set_cell_behavior(self, behavior: CellBehavior):
+        if behavior == CellBehavior.WRAP:
+            self.cell_wrap_radio.setChecked(True)
+        elif behavior == CellBehavior.UNLIMITED:
+            self.cell_unlimited_radio.setChecked(True)
+        elif behavior == CellBehavior.ERROR:
+            self.cell_error_radio.setChecked(True)
 
 
 class CompileOutputDialog(QDialog):
@@ -178,14 +378,12 @@ class MainWindow(QMainWindow):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._on_timer)
 
-        # Settings
         self.settings = {
             'pointer_behavior': PointerBehavior.CLAMP,
-            'cell_wrap': True
+            'cell_behavior': CellBehavior.WRAP
         }
 
-        # Configure interpreter with initial settings
-        self.interp.configure(self.settings['pointer_behavior'], self.settings['cell_wrap'])
+        self.interp.configure(self.settings['pointer_behavior'], self.settings['cell_behavior'])
 
         if hasattr(self.interp, 'setInputCallback'):
             self.interp.setInputCallback(self._request_input)
@@ -280,6 +478,8 @@ class MainWindow(QMainWindow):
         self.act_compile = QAction("Compile & Show", self)
         self.act_pseudocode = QAction("Generate Pseudocode", self)
         self.act_settings = QAction("Settings…", self)
+        self.act_about = QAction("About…", self)
+
         tb.addAction(self.act_open)
         tb.addAction(self.act_save)
         tb.addSeparator()
@@ -289,6 +489,7 @@ class MainWindow(QMainWindow):
         tb.addAction(self.act_break)
         tb.addSeparator()
         tb.addAction(self.act_settings)
+        tb.addAction(self.act_about)
 
         self.status = QStatusBar()
         self.setStatusBar(self.status)
@@ -309,6 +510,12 @@ class MainWindow(QMainWindow):
         self.act_compile.triggered.connect(self.on_compile)
         self.act_pseudocode.triggered.connect(self.on_pseudocode)
         self.act_settings.triggered.connect(self.on_settings)
+        self.act_about.triggered.connect(self.on_about)
+
+    def on_about(self):
+        """Show the About dialog"""
+        dialog = AboutDialog(self)
+        dialog.exec()
 
     def _request_input(self):
         input_text, ok = QInputDialog.getText(self, "Input Required",
@@ -371,8 +578,8 @@ class MainWindow(QMainWindow):
         self.timer.stop()
         self.paused_at_breakpoint = False
         self.interp.reset()
-        # Reapply settings after reset
-        self.interp.configure(self.settings['pointer_behavior'], self.settings['cell_wrap'])
+
+        self.interp.configure(self.settings['pointer_behavior'], self.settings['cell_behavior'])
         self.output.setPlainText("")
         self._update_status()
         self._refresh_memory()
@@ -406,26 +613,28 @@ class MainWindow(QMainWindow):
     def on_settings(self):
         dialog = SettingsDialog(self)
         dialog.set_pointer_behavior(self.settings['pointer_behavior'])
-        dialog.set_cell_wrap(self.settings['cell_wrap'])
+        dialog.set_cell_behavior(self.settings['cell_behavior'])
 
         if dialog.exec() == QDialog.Accepted:
-            # Update settings
             self.settings['pointer_behavior'] = dialog.get_pointer_behavior()
-            self.settings['cell_wrap'] = dialog.get_cell_wrap()
+            self.settings['cell_behavior'] = dialog.get_cell_behavior()
 
-            # Apply to interpreter
-            self.interp.configure(self.settings['pointer_behavior'], self.settings['cell_wrap'])
+            self.interp.configure(self.settings['pointer_behavior'], self.settings['cell_behavior'])
 
-            # Show confirmation
-            behavior_names = {
+            pointer_names = {
                 PointerBehavior.CLAMP: "Clamp",
                 PointerBehavior.WRAP: "Wrap-around",
                 PointerBehavior.ERROR: "Error on overflow"
             }
-            behavior_name = behavior_names[self.settings['pointer_behavior']]
-            cell_mode = "wrap" if self.settings['cell_wrap'] else "no wrap"
+            cell_names = {
+                CellBehavior.WRAP: "Wrap (0-255)",
+                CellBehavior.UNLIMITED: "Unlimited",
+                CellBehavior.ERROR: "Error on overflow"
+            }
+            pointer_name = pointer_names[self.settings['pointer_behavior']]
+            cell_name = cell_names[self.settings['cell_behavior']]
 
-            self.status.showMessage(f"Settings updated: Pointer={behavior_name}, Cells={cell_mode}", 3000)
+            self.status.showMessage(f"Settings updated: Pointer={pointer_name}, Cells={cell_name}", 3000)
 
     def on_compile(self):
         program = self.editor.toPlainText()
@@ -481,6 +690,7 @@ class MainWindow(QMainWindow):
     def on_pseudocode(self):
         program = self.editor.toPlainText()
         temp_interp = Interpreter()
+        temp_interp.configure(self.settings['pointer_behavior'], self.settings['cell_behavior'])
         temp_interp.loadProgram(program, "")
 
         if not hasattr(temp_interp, 'generatePseudocode'):
@@ -501,6 +711,13 @@ class MainWindow(QMainWindow):
         pseudocode += f"Pointer initialized at position 0.\n"
         pseudocode += f"pointer = 0\n\n"
 
+        cell_names = {
+            CellBehavior.WRAP: "wrap around (0-255)",
+            CellBehavior.UNLIMITED: "unlimited range",
+            CellBehavior.ERROR: "error on overflow/underflow"
+        }
+        pseudocode += f"Cell behavior: {cell_names[self.settings['cell_behavior']]}\n\n"
+
         pointer = 0
         pc = 0
         tabber = ""
@@ -515,9 +732,19 @@ class MainWindow(QMainWindow):
                     pointer -= 1
                     pseudocode += f"{tabber}pointer-- ({pointer})\n"
                 case '+':
-                    pseudocode += f"{tabber}memory[pointer] += 1 (mod 256)\n"
+                    if self.settings['cell_behavior'] == CellBehavior.WRAP:
+                        pseudocode += f"{tabber}memory[pointer] += 1 (mod 256)\n"
+                    elif self.settings['cell_behavior'] == CellBehavior.UNLIMITED:
+                        pseudocode += f"{tabber}memory[pointer] += 1 (unlimited)\n"
+                    else:
+                        pseudocode += f"{tabber}memory[pointer] += 1 (0-255, error on overflow)\n"
                 case '-':
-                    pseudocode += f"{tabber}memory[pointer] -= 1 (mod 256)\n"
+                    if self.settings['cell_behavior'] == CellBehavior.WRAP:
+                        pseudocode += f"{tabber}memory[pointer] -= 1 (mod 256)\n"
+                    elif self.settings['cell_behavior'] == CellBehavior.UNLIMITED:
+                        pseudocode += f"{tabber}memory[pointer] -= 1 (unlimited)\n"
+                    else:
+                        pseudocode += f"{tabber}memory[pointer] -= 1 (0-255, error on underflow)\n"
                 case '.':
                     pseudocode += f"{tabber}print(char(memory[pointer]))\n"
                 case ',':
@@ -536,8 +763,8 @@ class MainWindow(QMainWindow):
         program = self.editor.toPlainText()
         self.interp.reset()
         self.interp.loadProgram(program, "")
-        # Reapply settings after reset
-        self.interp.configure(self.settings['pointer_behavior'], self.settings['cell_wrap'])
+
+        self.interp.configure(self.settings['pointer_behavior'], self.settings['cell_behavior'])
         if hasattr(self.interp, 'setInputCallback'):
             self.interp.setInputCallback(self._request_input)
         self.output.setPlainText("")
@@ -552,7 +779,7 @@ class MainWindow(QMainWindow):
 
     def _execute_fast_chunk(self):
         try:
-            # Check for breakpoint at current position
+
             if self.interp.pc in self.editor.breakpoint_indices:
                 self.timer.stop()
                 self.paused_at_breakpoint = True
@@ -570,11 +797,14 @@ class MainWindow(QMainWindow):
             self._update_ui_after_step()
             return more_needed
 
-        except PointerOverflowError as e:
+        except (PointerOverflowError, CellOverflowError) as e:
             self.timer.stop()
             self.paused_at_breakpoint = False
             self._update_button_states()
-            QMessageBox.critical(self, "Pointer Overflow", f"Pointer overflow error: {str(e)}")
+            if isinstance(e, PointerOverflowError):
+                QMessageBox.critical(self, "Pointer Overflow", f"Pointer overflow error: {str(e)}")
+            else:
+                QMessageBox.critical(self, "Cell Overflow", f"Cell overflow error: {str(e)}")
             return False
         except Exception as e:
             self.timer.stop()
@@ -596,7 +826,7 @@ class MainWindow(QMainWindow):
 
         if (self.interp.pc < len(self.interp.program) and
                 self.interp.program[self.interp.pc] == ','):
-            # Handle input command
+
             needs_input = False
             try:
                 if hasattr(self.interp, 'input_buffer'):
@@ -606,7 +836,7 @@ class MainWindow(QMainWindow):
                     needs_input = True
 
                 if needs_input:
-                    # Stop execution to get input
+
                     was_running = self.timer.isActive()
                     self.timer.stop()
                     self.paused_at_breakpoint = False
@@ -622,7 +852,7 @@ class MainWindow(QMainWindow):
                     if hasattr(self.interp, 'input_buffer'):
                         self.interp.input_buffer = input_chars
                     else:
-                        # Fallback for older interpreter versions
+
                         self.interp.input_buffer = input_chars
 
                     try:
@@ -635,8 +865,11 @@ class MainWindow(QMainWindow):
 
                         return advanced
 
-                    except PointerOverflowError as e:
-                        QMessageBox.critical(self, "Pointer Overflow", f"Pointer overflow error: {str(e)}")
+                    except (PointerOverflowError, CellOverflowError) as e:
+                        if isinstance(e, PointerOverflowError):
+                            QMessageBox.critical(self, "Pointer Overflow", f"Pointer overflow error: {str(e)}")
+                        else:
+                            QMessageBox.critical(self, "Cell Overflow", f"Cell overflow error: {str(e)}")
                         return False
                     except Exception as e:
                         QMessageBox.critical(self, "Runtime Error", f"Execution error: {str(e)}")
@@ -656,11 +889,14 @@ class MainWindow(QMainWindow):
 
             return advanced
 
-        except PointerOverflowError as e:
+        except (PointerOverflowError, CellOverflowError) as e:
             self.timer.stop()
             self.paused_at_breakpoint = False
             self._update_button_states()
-            QMessageBox.critical(self, "Pointer Overflow", f"Pointer overflow error: {str(e)}")
+            if isinstance(e, PointerOverflowError):
+                QMessageBox.critical(self, "Pointer Overflow", f"Pointer overflow error: {str(e)}")
+            else:
+                QMessageBox.critical(self, "Cell Overflow", f"Cell overflow error: {str(e)}")
             return False
         except Exception as e:
             self.timer.stop()
@@ -692,12 +928,12 @@ class MainWindow(QMainWindow):
 
     def _on_timer(self):
         if self.execution_mode == 2 and hasattr(self.interp, 'runProgramFastInterruptible'):
-            # Fast mode with optimized execution
+
             if not self._execute_fast_chunk():
                 self.timer.stop()
                 self._update_button_states()
         else:
-            # Debug/slow mode with step-by-step execution
+
             steps_per_tick = 1 if self.execution_mode == 1 else 10
 
             for _ in range(steps_per_tick):
@@ -737,16 +973,32 @@ class MainWindow(QMainWindow):
             for col in range(16):
                 addr = (start_row + row) * 16 + col
                 if addr < self.interp.memory_size:
-                    item = QTableWidgetItem(str(self.interp.memory[addr]))
+                    cell_value = self.interp.memory[addr]
 
-                    if addr == center:
-                        item.setBackground(QColor(0, 100, 0))
-                        item.setForeground(QColor(255, 255, 255))
+                    if self.settings['cell_behavior'] == CellBehavior.UNLIMITED:
+
+                        item = QTableWidgetItem(str(cell_value))
+                        if cell_value < 0 or cell_value > 255:
+
+                            item.setBackground(QColor(255, 200, 200) if addr == center else QColor(255, 240, 240))
+                            item.setForeground(QColor(150, 0, 0))
+                        elif addr == center:
+                            item.setBackground(QColor(0, 100, 0))
+                            item.setForeground(QColor(255, 255, 255))
+                        else:
+                            item.setBackground(QColor(255, 255, 255))
+                            item.setForeground(QColor(0, 0, 0))
                     else:
-                        item.setBackground(QColor(255, 255, 255))
-                        item.setForeground(QColor(0, 0, 0))
+
+                        item = QTableWidgetItem(str(cell_value))
+                        if addr == center:
+                            item.setBackground(QColor(0, 100, 0))
+                            item.setForeground(QColor(255, 255, 255))
+                        else:
+                            item.setBackground(QColor(255, 255, 255))
+                            item.setForeground(QColor(0, 0, 0))
                 else:
-                    # Address beyond memory size
+
                     item = QTableWidgetItem("--")
                     item.setBackground(QColor(240, 240, 240))
                     item.setForeground(QColor(128, 128, 128))
@@ -779,16 +1031,20 @@ class MainWindow(QMainWindow):
         if hasattr(self.interp, '_fast_steps'):
             status_parts.append(f"steps={self.interp._fast_steps}")
 
-        # Add settings info
-        behavior_names = {
+        pointer_names = {
             PointerBehavior.CLAMP: "CLAMP",
             PointerBehavior.WRAP: "WRAP",
             PointerBehavior.ERROR: "ERROR"
         }
-        behavior = behavior_names[self.settings['pointer_behavior']]
-        cell_mode = "WRAP" if self.settings['cell_wrap'] else "NO-WRAP"
-        status_parts.append(f"ptr-mode={behavior}")
-        status_parts.append(f"cell-mode={cell_mode}")
+        cell_names = {
+            CellBehavior.WRAP: "WRAP",
+            CellBehavior.UNLIMITED: "UNLIMITED",
+            CellBehavior.ERROR: "ERROR"
+        }
+        pointer_behavior = pointer_names[self.settings['pointer_behavior']]
+        cell_behavior = cell_names[self.settings['cell_behavior']]
+        status_parts.append(f"ptr-mode={pointer_behavior}")
+        status_parts.append(f"cell-mode={cell_behavior}")
 
         self.status.showMessage("  ".join(status_parts))
 
@@ -799,8 +1055,8 @@ class MainWindow(QMainWindow):
         self.editor.setPlainText(sample)
         self.interp.reset()
         self.interp.loadProgram(self.editor.toPlainText(), "")
-        # Apply settings to sample
-        self.interp.configure(self.settings['pointer_behavior'], self.settings['cell_wrap'])
+
+        self.interp.configure(self.settings['pointer_behavior'], self.settings['cell_behavior'])
         if hasattr(self.interp, 'setInputCallback'):
             self.interp.setInputCallback(self._request_input)
         self.interp.running = False

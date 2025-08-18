@@ -7,8 +7,19 @@ class PointerBehavior(Enum):
     ERROR = 2  # Raise exception
 
 
+class CellBehavior(Enum):
+    WRAP = 0  # Standard Brainfuck wrap around (0-255)
+    UNLIMITED = 1  # Allow values beyond 0-255 range
+    ERROR = 2  # Raise exception on underflow/overflow
+
+
 class PointerOverflowError(Exception):
     """Raised when pointer goes out of bounds with ERROR behavior"""
+    pass
+
+
+class CellOverflowError(Exception):
+    """Raised when cell value goes out of bounds with ERROR behavior"""
     pass
 
 
@@ -16,13 +27,13 @@ class Interpreter:
     def __init__(self, memory_size=30000):
         self.memory_size = memory_size
         self.pointer_behavior = PointerBehavior.CLAMP
-        self.cell_wrap = True
+        self.cell_behavior = CellBehavior.WRAP
         self.reset()
 
-    def configure(self, pointer_behavior: PointerBehavior, cell_wrap: bool):
+    def configure(self, pointer_behavior: PointerBehavior, cell_behavior: CellBehavior):
         """Configure interpreter behavior settings"""
         self.pointer_behavior = pointer_behavior
-        self.cell_wrap = cell_wrap
+        self.cell_behavior = cell_behavior
 
     def reset(self):
         self.pointer = 0
@@ -65,10 +76,22 @@ class Interpreter:
 
     def _modify_cell(self, delta):
         """Handle cell value modification with configured behavior"""
-        if self.cell_wrap:
-            self.memory[self.pointer] = (self.memory[self.pointer] + delta) % 256
-        else:
-            self.memory[self.pointer] += delta
+        new_value = self.memory[self.pointer] + delta
+
+        if self.cell_behavior == CellBehavior.WRAP:
+            # Standard Brainfuck behavior: wrap around 0-255
+            self.memory[self.pointer] = new_value % 256
+        elif self.cell_behavior == CellBehavior.UNLIMITED:
+            # Allow values beyond 0-255 range
+            self.memory[self.pointer] = new_value
+        elif self.cell_behavior == CellBehavior.ERROR:
+            # Raise exception on underflow/overflow
+            if new_value < 0:
+                raise CellOverflowError(f"Cell underflow: attempted to set cell {self.pointer} to {new_value}")
+            elif new_value > 255:
+                raise CellOverflowError(f"Cell overflow: attempted to set cell {self.pointer} to {new_value}")
+            else:
+                self.memory[self.pointer] = new_value
 
     def checkProgramSyntax(self):
         allowed = set("[].,<>+-")
@@ -83,6 +106,14 @@ class Interpreter:
         pseudocode += f"Memory initialized with {len(self.memory)} cells.\n"
         pseudocode += f"Pointer initialized at position {self.pointer}.\n"
         pseudocode += f"pointer = {self.pointer}\n\n"
+
+        # Add behavior information
+        behavior_names = {
+            CellBehavior.WRAP: "wrap around (0-255)",
+            CellBehavior.UNLIMITED: "unlimited range",
+            CellBehavior.ERROR: "error on overflow/underflow"
+        }
+        pseudocode += f"Cell behavior: {behavior_names[self.cell_behavior]}\n\n"
 
         # Save original pointer
         original_pointer = self.pointer
@@ -100,9 +131,19 @@ class Interpreter:
                     self.pointer -= 1
                     pseudocode += f"{tabber}pointer-- ({self.pointer})\n"
                 case '+':
-                    pseudocode += f"{tabber}memory[pointer] += 1 (mod 256)\n"
+                    if self.cell_behavior == CellBehavior.WRAP:
+                        pseudocode += f"{tabber}memory[pointer] += 1 (mod 256)\n"
+                    elif self.cell_behavior == CellBehavior.UNLIMITED:
+                        pseudocode += f"{tabber}memory[pointer] += 1 (unlimited)\n"
+                    else:
+                        pseudocode += f"{tabber}memory[pointer] += 1 (0-255, error on overflow)\n"
                 case '-':
-                    pseudocode += f"{tabber}memory[pointer] -= 1 (mod 256)\n"
+                    if self.cell_behavior == CellBehavior.WRAP:
+                        pseudocode += f"{tabber}memory[pointer] -= 1 (mod 256)\n"
+                    elif self.cell_behavior == CellBehavior.UNLIMITED:
+                        pseudocode += f"{tabber}memory[pointer] -= 1 (unlimited)\n"
+                    else:
+                        pseudocode += f"{tabber}memory[pointer] -= 1 (0-255, error on underflow)\n"
                 case '.':
                     pseudocode += f"{tabber}print(char(memory[pointer]))\n"
                 case ',':
@@ -185,17 +226,30 @@ class Interpreter:
                     case '-':
                         self._modify_cell(-arg)
                     case '.':
-                        self.output_buffer += chr(self.memory[self.pointer])
+                        # Handle output for potentially large cell values
+                        cell_value = self.memory[self.pointer]
+                        if self.cell_behavior == CellBehavior.UNLIMITED and (cell_value < 0 or cell_value > 255):
+                            # For unlimited mode, clamp to valid ASCII range for output
+                            output_char = chr(max(0, min(255, cell_value)))
+                        else:
+                            output_char = chr(cell_value % 256)
+                        self.output_buffer += output_char
                     case ',':
                         if self.input_buffer:
-                            self.memory[self.pointer] = self.input_buffer.pop(0)
+                            input_value = self.input_buffer.pop(0)
+                            if self.cell_behavior == CellBehavior.ERROR and (input_value < 0 or input_value > 255):
+                                raise CellOverflowError(f"Input value {input_value} out of range (0-255)")
+                            self.memory[self.pointer] = input_value
                         elif self.input_callback:
                             # Handle input callback
                             input_data = self.input_callback()
                             if input_data:
                                 self.input_buffer.extend([ord(c) for c in input_data])
                                 if self.input_buffer:
-                                    self.memory[self.pointer] = self.input_buffer.pop(0)
+                                    input_value = self.input_buffer.pop(0)
+                                    if self.cell_behavior == CellBehavior.ERROR and (input_value < 0 or input_value > 255):
+                                        raise CellOverflowError(f"Input value {input_value} out of range (0-255)")
+                                    self.memory[self.pointer] = input_value
                                 else:
                                     self.memory[self.pointer] = 0
                             else:
@@ -208,8 +262,8 @@ class Interpreter:
                     case ']':
                         if self.memory[self.pointer] != 0:
                             pc = arg
-            except PointerOverflowError:
-                # Let pointer overflow errors propagate up
+            except (PointerOverflowError, CellOverflowError):
+                # Let overflow errors propagate up
                 raise
 
             pc += 1
@@ -244,17 +298,30 @@ class Interpreter:
                     case '-':
                         self._modify_cell(-arg)
                     case '.':
-                        self.output_buffer += chr(self.memory[self.pointer])
+                        # Handle output for potentially large cell values
+                        cell_value = self.memory[self.pointer]
+                        if self.cell_behavior == CellBehavior.UNLIMITED and (cell_value < 0 or cell_value > 255):
+                            # For unlimited mode, clamp to valid ASCII range for output
+                            output_char = chr(max(0, min(255, cell_value)))
+                        else:
+                            output_char = chr(cell_value % 256)
+                        self.output_buffer += output_char
                     case ',':
                         if self.input_buffer:
-                            self.memory[self.pointer] = self.input_buffer.pop(0)
+                            input_value = self.input_buffer.pop(0)
+                            if self.cell_behavior == CellBehavior.ERROR and (input_value < 0 or input_value > 255):
+                                raise CellOverflowError(f"Input value {input_value} out of range (0-255)")
+                            self.memory[self.pointer] = input_value
                         elif self.input_callback:
                             # Handle input callback
                             input_data = self.input_callback()
                             if input_data:
                                 self.input_buffer.extend([ord(c) for c in input_data])
                                 if self.input_buffer:
-                                    self.memory[self.pointer] = self.input_buffer.pop(0)
+                                    input_value = self.input_buffer.pop(0)
+                                    if self.cell_behavior == CellBehavior.ERROR and (input_value < 0 or input_value > 255):
+                                        raise CellOverflowError(f"Input value {input_value} out of range (0-255)")
+                                    self.memory[self.pointer] = input_value
                                 else:
                                     self.memory[self.pointer] = 0
                             else:
@@ -267,8 +334,8 @@ class Interpreter:
                     case ']':
                         if self.memory[self.pointer] != 0:
                             self._fast_pc = arg
-            except PointerOverflowError:
-                # Let pointer overflow errors propagate up
+            except (PointerOverflowError, CellOverflowError):
+                # Let overflow errors propagate up
                 raise
 
             self._fast_pc += 1
@@ -301,17 +368,30 @@ class Interpreter:
                 case '-':
                     self._modify_cell(-1)
                 case '.':
-                    self.output_buffer += chr(self.memory[self.pointer])
+                    # Handle output for potentially large cell values
+                    cell_value = self.memory[self.pointer]
+                    if self.cell_behavior == CellBehavior.UNLIMITED and (cell_value < 0 or cell_value > 255):
+                        # For unlimited mode, clamp to valid ASCII range for output
+                        output_char = chr(max(0, min(255, cell_value)))
+                    else:
+                        output_char = chr(cell_value % 256)
+                    self.output_buffer += output_char
                 case ',':
                     if self.input_buffer:
-                        self.memory[self.pointer] = self.input_buffer.pop(0)
+                        input_value = self.input_buffer.pop(0)
+                        if self.cell_behavior == CellBehavior.ERROR and (input_value < 0 or input_value > 255):
+                            raise CellOverflowError(f"Input value {input_value} out of range (0-255)")
+                        self.memory[self.pointer] = input_value
                     elif self.input_callback:
                         # Handle input callback
                         input_data = self.input_callback()
                         if input_data:
                             self.input_buffer.extend([ord(c) for c in input_data])
                             if self.input_buffer:
-                                self.memory[self.pointer] = self.input_buffer.pop(0)
+                                input_value = self.input_buffer.pop(0)
+                                if self.cell_behavior == CellBehavior.ERROR and (input_value < 0 or input_value > 255):
+                                    raise CellOverflowError(f"Input value {input_value} out of range (0-255)")
+                                self.memory[self.pointer] = input_value
                             else:
                                 self.memory[self.pointer] = 0
                         else:
@@ -340,8 +420,8 @@ class Interpreter:
                                 depth += 1
                             elif self.program[self.pc] == '[':
                                 depth -= 1
-        except PointerOverflowError:
-            # Let pointer overflow errors propagate up
+        except (PointerOverflowError, CellOverflowError):
+            # Let overflow errors propagate up
             raise
 
         self.pc += 1
